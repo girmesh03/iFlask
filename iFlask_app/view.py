@@ -718,7 +718,7 @@ class View(ctk.CTk):
 
     def connect_to_esp32(self):
         """Connect to the ESP32."""
-        with open('output.log', 'w') as log_file:
+        with open('data/output.log', 'w') as log_file:
             subprocess.Popen(['pythonw', 'api.py'],
                              stdout=log_file,
                              stderr=subprocess.STDOUT)
