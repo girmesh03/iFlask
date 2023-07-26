@@ -1,3 +1,6 @@
+""" This module contains the View class which is responsible for
+managing user interactions with the GUI."""
+
 import tkinter as tk
 import tkinter.ttk as ttk
 from PIL import Image
@@ -8,20 +11,26 @@ import webbrowser
 import xlsxwriter
 import subprocess
 import psutil
-import os
 
 import customtkinter as ctk
 from settings.configuration import Configuration
 
 
 class View(ctk.CTk):
+    """The View class is responsible for managing user interactions
+    with the GUI."""
+
     def __init__(self, controller) -> None:
+        """Initialize the View class."""
         super().__init__()
 
         self.controller = controller
+
         self.title("iFlask")
         self.geometry("800x500")
         self.icon_path = "./images/icon.ico"
+        self.iconbitmap(self.icon_path)
+
         self.config = Configuration("settings/config.ini")
         self.theme = self.config.get_value("Settings", "theme")
 
@@ -163,8 +172,8 @@ class View(ctk.CTk):
             35, 35), pady=(25, 5), sticky='ew')
 
     def on_admin_option_changed(self, *args):
+        """Handle admin option change"""
         selected_option = self.selected_option.get()
-        # print(f"view Selected option: {selected_option}")
         self.controller.admin(selected_option)
 
     def create_name_entries(self):
@@ -286,7 +295,8 @@ class View(ctk.CTk):
 
         self.treeview = ttk.Treeview(
             self.treeview_frame, columns=self.column_names, show='headings',
-            yscrollcommand=self.vertical_scrollbar.set, xscrollcommand=self.horizontal_scrollbar.set, height=20
+            yscrollcommand=self.vertical_scrollbar.set,
+            xscrollcommand=self.horizontal_scrollbar.set, height=20
         )
         self.treeview.pack(fill='both', expand=True, padx=10, pady=10)
 
@@ -548,7 +558,8 @@ class View(ctk.CTk):
 
         if option == 'Search User':
             for user in all_users:
-                if user.first_name == search_query or user.last_name == search_query:
+                if user.first_name == search_query\
+                        or user.last_name == search_query:
                     filtered_users.append(user)
 
             if not filtered_users:
@@ -718,7 +729,7 @@ class View(ctk.CTk):
 
     def connect_to_esp32(self):
         """Connect to the ESP32."""
-        with open('data/output.log', 'w') as log_file:
+        with open('output.log', 'w') as log_file:
             subprocess.Popen(['pythonw', 'api.py'],
                              stdout=log_file,
                              stderr=subprocess.STDOUT)

@@ -1,6 +1,8 @@
+"""This module contains the Controller class."""
+
 from settings.configuration import Configuration
-from .model import Model
-from .view import View
+from iFlask_app.model import Model
+from iFlask_app.view import View
 import phonenumbers
 import requests
 import re
@@ -16,14 +18,6 @@ class Controller:
     and communicates with the Model to perform
     database operations. It also updates the View
     to display relevant information and messages to the user.
-
-    Attributes:
-        model (Model): An instance of the Model class representing
-        the database operations.
-        view (View): An instance of the View class representing
-        the graphical user interface.
-        config (Configuration): An instance of the Configuration
-        class to manage configuration settings.
     """
 
     def __init__(self) -> None:
@@ -47,12 +41,12 @@ class Controller:
         if current_user == 'staff' and option == 'Login':
             self.view.admin_login_window(option)
             return
-
+        # on logout set current user to staff
         if option == 'Logout' and current_user == 'admin':
             self.config.set_value('User', 'current_user', 'staff')
             self.config.save_changes()
             return
-
+        # on add admin user,call the add admin user window in the view
         if current_user == 'admin' and option == 'Add Admin User':
             self.view.admin_login_window(option)
         elif current_user == 'staff' and option == 'Add Admin User':
@@ -72,8 +66,7 @@ class Controller:
         if option == 'Login':
             # get user from database
             email = kwargs.get('email')
-            user = self.model.get_user_by_email(email)
-            print('login controller', user.first_name)
+            user = self.model.get_admin_user_by_email(email)
             if user:
                 self.save_admin_changes(
                     admin_dict['email'], admin_dict['password'])
@@ -83,9 +76,8 @@ class Controller:
         if option == 'Add Admin User':
             # add user to database
             user = self.model.add_admin(**admin_dict)
-            if user:
-                print(user.first_name)
-            return
+            if not user:
+                return False
 
     def save_admin_changes(self, email, password):
         """Saves the admin user details to the configuration file
@@ -94,6 +86,12 @@ class Controller:
         self.config.set_value('Admin', 'email', email)
         self.config.set_value('Admin', 'password', password)
         self.config.set_value('User', 'current_user', 'admin')
+        self.config.save_changes()
+
+    def reset_default_config(self):
+        """Resets the configuration file to its default settings."""
+        self.config.set_value('User', 'current_user', 'staff')
+
         self.config.save_changes()
 
     def enroll_user(self, event=None):
@@ -218,7 +216,7 @@ class Controller:
             self.view.display_message(
                 "No changes in the entry fields. Skipping update.")
 
-         # No changes in the entry fields
+        # No changes in the entry fields
         self.view.clear_entry_fields()
 
     def generate_report(self, event=None):
@@ -235,21 +233,24 @@ class Controller:
         self.password = kwargs.get('password')
 
         if not self.email or not self.password:
-            # self.view.display_message("Please fill in all the required fields.")
+            # Please fill in all the required fields.
             return "Please fill in all the required fields"
 
         # Valid format for email: if not valid
-        self.email_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        e_pattern = r"^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$"
+        self.email_pattern = e_pattern
         if not re.match(self.email_pattern, self.email):
             # self.view.display_message("Invalid email format.")
             return "Please enter a valid email address"
 
         # Valid format for password: if not valid
-        self.password_pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{4,}$"
+        p_pattern = r"^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)[a-zA-Z\d]{4,}$"
+        self.password_pattern = p_pattern
         if not re.match(self.password_pattern, self.password):
-            # self.view.display_message("Invalid password format.")
-            return "Password must contain at least 4 characters, \
-                1 uppercase letter, 1 lowercase letter and 1 number"
+            # Invalid password format.
+            message = '''Password must contain at least 4 characters,
+            1 uppercase letter, 1 lowercase letter and 1 number.'''
+            return message
 
         # Maximum Length Validation
         max_length = 50  # Define the maximum length for fields if necessary
@@ -351,5 +352,5 @@ class Controller:
         return self.model.get_all_users()
 
     def run(self) -> None:
-        """Runs the Controller class."""
+        """Runs the GUI."""
         self.view.mainloop()

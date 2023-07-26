@@ -1,17 +1,22 @@
+"""This module contains the Model class."""
+
 from sqlalchemy.orm import sessionmaker
-from .user_model import User, Admin, engine, Base
+from iFlask_app.user_model import User, Admin, engine, Base
 from settings.configuration import Configuration
 from datetime import datetime
 
 
 class Model:
+    """The Model class is responsible for interacting with the database."""
+
     def __init__(self) -> None:
         """Initialize the Model class."""
-        self.config = Configuration('app/config.ini')
+        self.config = Configuration('settings/config.ini')
         self.Session = sessionmaker(bind=engine)
         self.session = self.Session()
         self.create_database()
         self.add_fake_users()
+        self.create_default_admin()
 
     def create_database(self):
         """Create the database if it doesn't exist."""
@@ -26,7 +31,7 @@ class Model:
         self.fake_data_created = self.config.get_value(
             'FakeData', 'is_created')
         if self.fake_data_created == 'False':
-            from .fake_users import fake_user_list
+            from iFlask_app.fake_users import fake_user_list
             for user in fake_user_list:
                 if user['country_code'] == '+882 16':
                     user['country_code'] = '+882'
@@ -34,109 +39,67 @@ class Model:
             self.config.set_value('FakeData', 'is_created', 'True')
             self.config.save_changes()
 
+    def create_default_admin(self):
+        """Create a default admin user if not already created."""
+        is_admin_created = self.config.get_value('Admin', 'admin_created')
+        if is_admin_created == 'False':
+            admin_dict = {}
+            admin_dict['first_name'] = 'admin'
+            admin_dict['last_name'] = 'admin'
+            admin_dict['email'] = 'admin@gmail.com'
+            admin_dict['password'] = 'Admin1234'
+
+            admin = self.add_admin(**admin_dict)
+            if admin:
+                self.config.set_value('Admin', 'admin_created', 'True')
+                self.config.save_changes()
+            else:
+                pass
+
     def get_all_users(self):
         """Retrieve all users from the database."""
         return self.session.query(User).all()
 
     def add_user(self, **kwargs):
-        """
-        Create a new user.
-
-        Args:
-            **kwargs: Keyword arguments representing user data.
-
-        Returns:
-            User: The newly created user object.
-        """
+        """Create a new user in the database."""
         user = User(**kwargs)
         self.session.add(user)
         self.session.commit()
         return user
 
     def add_admin(self, **kwargs):
-        """
-        Create a new admin user.
-
-        Args:
-            **kwargs: Keyword arguments representing admin user data.
-
-        Returns:
-            Admin: The newly created admin user object.
-        """
+        """Create a new admin user in the database."""
         admin = Admin(**kwargs)
         self.session.add(admin)
         self.session.commit()
         return admin
 
     def delete_user(self, user):
-        """
-        Delete a user from the database.
-
-        Args:
-            user (User): The user object to be deleted.
-        """
+        """Delete a user from the database."""
         self.session.delete(user)
         self.session.commit()
 
     def update_user(self, user, **kwargs):
-        """
-        Update a user in the database.
-
-        Args:
-            user (User): The user object to be updated.
-            **kwargs: Keyword arguments representing user data to be updated.
-        """
+        """Update a user in the database."""
         self.session.query(User).filter_by(id=user.id).update(kwargs)
         self.session.commit()
 
     def get_user_by_id(self, user_id):
-        """
-        Retrieve a user by their ID.
-
-        Args:
-            user_id (int): The ID of the user.
-
-        Returns:
-            User: The user object matching the ID, or None if not found.
-        """
+        """Retrieve a user by their ID."""
         return self.session.query(User).filter_by(id=user_id).first()
 
     def get_user_by_phone_number(self, phone_number):
-        """
-        Retrieve a user by their phone number.
-
-        Args:
-            phone_number (str): The phone number of the user.
-
-        Returns:
-            User: The user object matching the phone number,
-            or None if not found.
-        """
-        return self.session.query(User).filter_by(phone_number=phone_number).first()
+        """Retrieve a user by their phone number."""
+        return self.session.query(User).filter_by(
+            phone_number=phone_number).first()
 
     def get_number_of_users(self):
-        """
-        Get the total number of users in the database.
-
-        Returns:
-            int: The number of users.
-        """
+        """Get the number of users in the database."""
         return self.session.query(User).count()
 
     def get_user_update(self, user_id):
-        """
-        Get the user object with an update.
-
-        This method retrieves the user from the database and
-        performs an update if the user's remaining days are greater than 0.
-
-        Args:
-            user_id (int): The ID of the user.
-
-        Returns:
-            User: The updated user object, or
-            None if the user doesn't require an update.
-        """
+        """Update a user last check in,
+        remaining days, and return the user object or None."""
         user = self.session.query(User).filter_by(id=user_id).first()
         if user and user.remaining_days > 0:
             user_dict = {}
@@ -147,15 +110,6 @@ class Model:
         else:
             return None
 
-    def get_user_by_email(self, email):
-        """
-        Retrieve an admin user by their email.
-
-        Args:
-            email (str): The email of the admin user.
-
-        Returns:
-            Admin: The admin user object matching the email,
-            or None if not found.
-        """
+    def get_admin_user_by_email(self, email):
+        """Retrieve an admin user by their email."""
         return self.session.query(Admin).filter_by(email=email).first()
